@@ -1,0 +1,16 @@
+[
+  {
+    "ticker": "TEST1",
+    "candles": [
+      { "open": 10, "high": 10.5, "low": 9.8, "close": 10.2, "volume": 1000 },
+      { "open": 10.2, "high": 10.7, "low": 10.0, "close": 10.6, "volume": 1200 }
+    ]
+  },
+  {
+    "ticker": "TEST2",
+    "candles": [
+      { "open": 20, "high": 20.5, "low": 19.5, "close": 19.8, "volume": 2000 },
+      { "open": 19.8, "high": 20.1, "low": 19.2, "close": 19.4, "volume": 1800 }
+    ]
+  }
+]
