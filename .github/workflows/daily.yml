@@ -1,20 +1,25 @@
 name: Bist Engine Test
 on:
-  workflow_dispatch: # Bu satır manuel "Run" butonu ekler
+  workflow_dispatch: # Manuel çalıştırma butonu
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
+          
       - name: Install Dependencies
-        run: npm install
+        # Takılmaları önlemek için temiz kurulum yapar
+        run: npm install 
+        
       - name: Run Bot
-        run: node bot.js
+        # bot.js yerine eski çalışan engine.js dosyasını tetikler
+        run: node engine.js 
         env:
           TRADINGVIEW_TOKEN: ${{ secrets.TRADINGVIEW_TOKEN }}
           TRADINGVIEW_CHAT_ID: ${{ secrets.TRADINGVIEW_CHAT_ID }}
