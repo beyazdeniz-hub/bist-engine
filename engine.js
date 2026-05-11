@@ -2,17 +2,21 @@ const puppeteer = require('puppeteer');
 const axios = require('axios');
 const fs = require('fs');
 const FormData = require('form-data');
-const analyzer = require('./analyzer'); // Analiz motorunu çağırıyoruz
+const analyzer = require('./analyzer'); 
 
 const TOKEN = process.env.TRADINGVIEW_TOKEN;
 const CHAT_ID = process.env.TRADINGVIEW_CHAT_ID;
 
 async function runLogic() {
-    const browser = await puppeteer.launch({ headless: "new", args: ['--no-sandbox'] });
+    // Tarayıcıyı hızlandırmak için gereksiz kaynakları (resim vb.) yüklememesini sağlıyoruz
+    const browser = await puppeteer.launch({ 
+        headless: "new", 
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
     const page = await browser.newPage();
     
     try {
-        console.log("1. TurkishBulls Sinyal Listesi taranıyor...");
+        console.log("1. Liste taranıyor...");
         await page.goto('https://www.turkishbulls.com/SignalList.aspx?lang=tr&MarketSymbol=IMKB', { waitUntil: 'networkidle2' });
         
         const tickers = await page.evaluate(() => {
@@ -24,10 +28,11 @@ async function runLogic() {
                        }).filter(t => t !== null);
         });
 
-        console.log(`${tickers.length} adet hisse bulundu. İlk 15 hisse analiz ediliyor...`);
+        // HIZLI TEST: Sadece ilk 3 hisseyi alıyoruz
+        const testList = tickers.slice(0, 3);
+        console.log(`🚀 Test Başladı! İncelenecek Hisseler: ${testList.join(", ")}`);
 
-        // Performans için ilk 15 hisse ile sınırlayalım
-        for (const ticker of tickers.slice(0, 15)) {
+        for (const ticker of testList) {
             const detailPage = await browser.newPage();
             try {
                 await detailPage.goto(`https://www.turkishbulls.com/SignalPage.aspx?lang=tr&Ticker=${ticker}`, { waitUntil: 'domcontentloaded' });
@@ -46,12 +51,13 @@ async function runLogic() {
                 const result = analyzer.analyzeTicker(ticker, candles);
 
                 if (result) {
-                    console.log(`🎯 Sinyal Yakalandı: ${ticker} (Skor: ${result.score})`);
-                    
+                    console.log(`🎯 Sinyal Şartları Sağlandı: ${ticker}`);
                     const chartPage = await browser.newPage();
                     await chartPage.setViewport({width: 1200, height: 800});
                     await chartPage.goto(`https://www.tradingview.com/chart/?symbol=BIST:${ticker}`, {waitUntil: 'networkidle2'});
-                    await new Promise(r => setTimeout(r, 6000));
+                    
+                    // Grafik yükleme süresini test için 5 saniyeye çektim
+                    await new Promise(r => setTimeout(r, 5000));
                     
                     const path = `${ticker}.png`;
                     await chartPage.screenshot({path});
@@ -59,16 +65,18 @@ async function runLogic() {
                     await sendTelegram(result, path);
                     if(fs.existsSync(path)) fs.unlinkSync(path);
                     await chartPage.close();
+                } else {
+                    console.log(`ℹ️ ${ticker} analiz edildi ancak skor barajını (50+) geçemedi.`);
                 }
-            } catch (e) {
-                console.log(`${ticker} hatası: ${e.message}`);
+            } catch (err) {
+                console.log(`⚠️ ${ticker} hatası: ${err.message}`);
             } finally {
                 await detailPage.close();
             }
         }
     } finally {
         await browser.close();
-        console.log("İşlem tamamlandı.");
+        console.log("🏁 Test tamamlandı.");
     }
 }
 
@@ -76,7 +84,7 @@ async function sendTelegram(res, photo) {
     const form = new FormData();
     form.append('chat_id', CHAT_ID);
     form.append('photo', fs.createReadStream(photo));
-    const caption = `🚀 *BİST SİNYAL: ${res.ticker}*\n━━━━━━━━━━━━━━━━━━\n🎯 Skor: ${res.score}/100\n🕯 Formasyon: ${res.pattern || 'Belirsiz'}\n🛡 Alış: ${res.buyLevel} TL\n🛑 Stop: ${res.stopLevel} TL\n📈 RSI: ${res.rsi}`;
+    const caption = `🚀 *BİST TEST SİNYAL: ${res.ticker}*\n━━━━━━━━━━━━━━━━━━\n🎯 Skor: ${res.score}/100\n🕯 Formasyon: ${res.pattern || 'Belirsiz'}\n🛡 Alış: ${res.buyLevel} TL\n🛑 Stop: ${res.stopLevel} TL`;
     form.append('caption', caption);
     form.append('parse_mode', 'Markdown');
     await axios.post(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, form, { headers: form.getHeaders() });
