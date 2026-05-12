@@ -1,6 +1,6 @@
 name: Bist Engine Test
 on:
-  workflow_dispatch: # Manuel çalıştırma butonu
+  workflow_dispatch: # Manuel başlatma butonu
 
 jobs:
   run-bot:
@@ -14,11 +14,11 @@ jobs:
           node-version: 18
           
       - name: Install Dependencies
-        # Takılmaları önlemek için temiz kurulum yapar
+        # Puppeteer'ın takılmasını önlemek için temiz kurulum
         run: npm install 
         
       - name: Run Bot
-        # bot.js yerine eski çalışan engine.js dosyasını tetikler
+        # Buranın engine.js olduğundan emin oluyoruz
         run: node engine.js 
         env:
           TRADINGVIEW_TOKEN: ${{ secrets.TRADINGVIEW_TOKEN }}
