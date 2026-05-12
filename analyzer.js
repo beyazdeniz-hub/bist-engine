@@ -397,5 +397,4 @@ function analyzeMarket(allData) {
 module.exports = {
   analyzeMarket,
   analyzeTicker
-};
-s
+  };
